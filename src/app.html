@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>floJAY</title>
+<!--INLINE:css-->
+<style>
+  /* App styling on top of the SemiQuant palette (assets/report-extras.css + Dash_v1.2.css). */
+  * { box-sizing: border-box; }
+  html { background: var(--sq-ground); }
+  body { margin:0; padding:84px 0 60px; background: var(--sq-ground); color: var(--sq-text);
+         font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  main { max-width:1100px; margin:0 auto; padding:0 20px; }
+  /* Dash_v1.2 chart-wrapper box */
+  section { background: var(--sq-raised); border:1px solid var(--sq-ground); border-radius:3px; padding:0 14px 14px; margin-bottom:14px; }
+  section > h2 { margin:0 -14px 10px; padding:9px 14px 6px; border-bottom:1px solid var(--sq-blue); color: var(--sq-text); font-size:18px; font-weight:600; }
+  .step { display:inline-block; background: var(--sq-blue); color: var(--sq-ground); border-radius:50%; width:22px; height:22px; text-align:center; line-height:22px; font-size:12px; font-weight:700; margin-right:8px; vertical-align:2px; }
+  .hint { color:#b9b6a6; font-size:13px; margin:0 0 12px; }
+  .hint code { font-size:12px; }
+  .drop { border:2px dashed var(--sq-teal); border-radius:3px; padding:26px; text-align:center; color:#b9b6a6; cursor:pointer; transition:.15s; background: var(--sq-panel); }
+  .drop.over { border-color: var(--sq-green); color: var(--sq-green); background: var(--sq-ground); }
+  .drop strong { color: var(--sq-text); }
+  table.list { width:100% !important; border-collapse:collapse; font-size:13px; margin:10px 0 0; background: var(--sq-panel); }
+  table.list th, table.list td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--sq-rule); vertical-align:top; font-size:13px !important; }
+  table.list th { font-size:13px !important; }
+  input[type=text], input[type=number], select, textarea { font:inherit; padding:7px 9px; border:1px solid var(--sq-rule); border-radius:3px; background: var(--sq-ground); color: var(--sq-text); }
+  input:focus, select:focus, textarea:focus { outline:none; border-color: var(--sq-blue); }
+  input[type=text], select { min-width:220px; }
+  select option { background: var(--sq-ground); }
+  textarea { width:100%; min-height:120px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize:vertical; color:#dcd9cf; background:#1f1f1e; }
+  .mono { font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  /* report-extras .btn-default look */
+  button { font:inherit; padding:7px 13px; border:1px solid var(--sq-raised); border-radius:3px; background: var(--sq-panel); color: var(--sq-blue); cursor:pointer; }
+  button:hover { background: var(--sq-raised); border-color: var(--sq-blue); color: var(--sq-text); }
+  button.primary { background: var(--sq-blue); border-color: var(--sq-blue); color: var(--sq-ground); font-weight:700; }
+  button.primary:hover { background: var(--sq-green); border-color: var(--sq-green); }
+  button.small { padding:3px 8px; font-size:12px; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  .row { display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; margin:8px 0; }
+  label.inline { display:inline-flex; align-items:center; gap:6px; }
+  input[type=checkbox] { accent-color: var(--sq-blue); width:15px; height:15px; }
+  .badge { display:inline-block; font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:3px 9px; border-radius:11px; background:#2f6f4f; color:#eafbf1; white-space:nowrap; }
+  .badge.zero { background:#7a3a3a; color:#fbe9e9; }
+  .badge.muted { background:#4a4a48; color:#eceada; text-transform:none; letter-spacing:0; font-weight:600; }
+  .msg { padding:8px 12px; border-radius:0 3px 3px 0; font-size:13px; margin:8px 0; background: var(--sq-panel); border-left:4px solid var(--sq-green); color: var(--sq-text); }
+  .msg.warn { border-left-color:#e8b866; color:#f6dfae; }
+  .msg.err { border-left-color: var(--sq-link); color:#f7c5e0; }
+  .msg.ok { border-left-color: var(--sq-green); }
+  .card { background: var(--sq-panel); border:1px solid var(--sq-ground); border-left:4px solid var(--sq-teal); border-radius:0 3px 3px 0; padding:12px; margin:10px 0; }
+  .card .head { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:8px; }
+  .card .head input[type=text] { min-width:180px; font-weight:600; color: var(--sq-green); }
+  details.sq-details { margin:12px 0 0; }
+  details.sq-details > summary { font-size:13px; padding:8px 0; }
+  .card details.sq-details { margin:8px 0 0; padding:0 12px; border-left-color: var(--sq-blue); }
+  ul.matches { margin:6px 0 8px; padding-left:18px; max-height:180px; overflow:auto; }
+  ul.matches li { font-size:12px !important; color:#b9b6a6; }
+  .picker { max-height:260px; overflow:auto; border:1px solid var(--sq-rule); border-radius:3px; margin:6px 0; background: var(--sq-ground); }
+  .picker table { width:100% !important; border-collapse:collapse; margin:0; background:transparent; }
+  .picker td { padding:3px 8px; border-bottom:1px solid var(--sq-rule) !important; font-size:12px !important; }
+  .picker td:first-child { width:28px; }
+  .picker td.sh { font-family: ui-monospace, Menlo, monospace; color: var(--sq-green); white-space:nowrap; }
+  .picker td.full { color:#8a8778; }
+  .picker tr.hide { display:none; }
+  .picker-tools { margin:6px 0 0; }
+  .browser { max-height:320px; overflow:auto; border:1px solid var(--sq-rule); border-radius:3px; margin:8px 0; background: var(--sq-ground); }
+  .browser table { width:100% !important; border-collapse:collapse; margin:0; background:transparent; }
+  .browser td { padding:4px 8px; border-bottom:1px solid var(--sq-rule) !important; font-size:12px !important; }
+  .browser td:first-child { font-family: ui-monospace, Menlo, monospace; color: var(--sq-green); }
+  .browser td.full { color:#8a8778; }
+  .preview { overflow:auto; max-height:360px; border:1px solid var(--sq-rule); border-radius:3px; margin-top:8px; background: var(--sq-ground); }
+  .preview table { border-collapse:collapse; font-size:12px; white-space:nowrap; margin:0; background:transparent; }
+  .preview th, .preview td { padding:4px 8px; border-bottom:1px solid var(--sq-rule) !important; border-right:1px solid var(--sq-panel); text-align:right; font-size:12px !important; }
+  .preview th { position:sticky; top:0; text-align:left; max-width:260px; overflow:hidden; text-overflow:ellipsis; }
+  .preview td:first-child, .preview td.txt { text-align:left; }
+  .preview tr:nth-of-type(odd) td { background: var(--sq-panel); }
+  pre.log { margin:0; max-height:300px; overflow:auto; white-space:pre-wrap; }
+  .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } input[type=text], select { min-width:0; width:100%; } body { padding-top:70px; } }
+  @media print { section { background:#fff; border-color:#999; } .hint { color:#444; } .drop, #sec-settings { display:none; } }
+</style>
+</head>
+<body>
+<div class="sq-header">
+  <img src="<!--INLINE:logo-->" alt="SemiQuant">
+  <div><div class="sq-title">floJAY</div><div class="sq-sub">Combine FlowJo table exports, rebuild panels, subtract baseline, export tidy data. Runs in your browser; nothing is uploaded.</div></div>
+  <div class="sq-right"><span class="sq-sub" id="hdrStatus"></span></div>
+</div>
+<main>
+
+<section id="sec-files">
+  <h2><span class="step">1</span>Load FlowJo exports</h2>
+  <p class="hint">Drop one or more <code>.xlsx</code> files exported from FlowJo. Only the <strong>Table</strong> sheet (or the first sheet) of each file is read. Rows whose name does not match the sample-name pattern (e.g. Mean, SD) are dropped automatically and listed below the table.</p>
+  <div class="drop" id="drop"><strong>Drop files here</strong> or click to choose<br><small>Same gating strategy and column order across files</small></div>
+  <input type="file" id="fileInput" multiple accept=".xlsx,.xlsm,.xls,.csv" style="display:none">
+  <div id="fileList"></div>
+</section>
+
+<section id="sec-name">
+  <h2><span class="step">2</span>Sample name pattern</h2>
+  <p class="hint">Describe how the first column is built. Each <code>{NAME}</code> becomes a column in the output and can be used for baseline subtraction. Spaces around separators are flexible.</p>
+  <div class="row">
+    <label class="inline">Template <input type="text" id="template" placeholder="{PID} - {TIMEPOINT}_{ANTIGEN}" style="min-width:320px"></label>
+    <label class="inline"><input type="checkbox" id="useRegex"> Advanced: use a regular expression</label>
+  </div>
+  <div class="row" id="regexRow" style="display:none">
+    <label class="inline">Regex with named groups <input type="text" id="regex" style="min-width:480px" class="mono"></label>
+  </div>
+  <div id="nameMsg"></div>
+  <div id="namePreview"></div>
+</section>
+
+<section id="sec-sets">
+  <h2><span class="step">3</span>Column sets (panels)</h2>
+  <p class="hint">Each set becomes one sheet in the output. Tick the columns you want from the list (it fills from the loaded files), or load a preset.
+    Selections are stored as shorthand (<code>gate/path | Statistic</code>) which you can also edit as text under <em>Advanced</em>: the gate part only needs the end of the gating path, the statistic only its start, <code>*</code> is a wildcard, <code>#</code> starts a comment.</p>
+  <div class="row">
+    <label class="inline">Preset <select id="presetSel" style="min-width:200px"></select></label>
+    <button id="presetLoad">Load preset</button>
+    <span class="hint" style="margin:0">replaces the sets below</span>
+    <span style="flex:1"></span>
+    <button id="addSet">+ Add empty set</button>
+  </div>
+  <div id="sets"></div>
+</section>
+
+<section id="sec-proc">
+  <h2><span class="step">4</span>Processing</h2>
+  <div class="grid2">
+    <div>
+      <div class="row"><label class="inline"><input type="checkbox" id="blEnabled"> <strong>Subtract baseline</strong></label></div>
+      <div class="row">
+        <label class="inline">Field <select id="blField"></select></label>
+        <label class="inline">Baseline value <input type="text" id="blValue" list="blValues" style="min-width:120px"><datalist id="blValues"></datalist></label>
+      </div>
+      <div class="row"><label class="inline"><input type="checkbox" id="blDrop"> Drop the baseline rows from the subtracted sheets</label></div>
+      <p class="hint" id="blExplain"></p>
+    </div>
+    <div>
+      <div class="row"><label class="inline"><input type="checkbox" id="floorEnabled"> <strong>Floor small values</strong></label></div>
+      <div class="row"><label class="inline">Anything below <input type="number" id="floorThr" step="any" style="width:110px"> is set to that value (applied after subtraction)</label></div>
+      <div class="row"><label class="inline">Apply subtraction and floor only to columns whose statistic starts with <input type="text" id="statFilter" style="min-width:110px"></label></div>
+      <p class="hint" style="margin:0">Default <code>Freq.</code> keeps Count columns untouched. Leave empty to apply to every column.</p>
+      <div class="row" style="margin-top:12px"><label class="inline"><input type="checkbox" id="longAll"> Long table: include <strong>all</strong> columns instead of only the column sets</label></div>
+      <div class="row"><label class="inline"><input type="checkbox" id="naText" checked> Write missing values as the text <code>NA</code> (unchecked: leave cells empty)</label></div>
+    </div>
+  </div>
+</section>
+
+<section id="sec-export">
+  <h2><span class="step">5</span>Preview and export</h2>
+  <div id="runMsg"></div>
+  <div class="row">
+    <button class="primary" id="dlXlsx" disabled>Download combined .xlsx</button>
+    <span class="hint" style="margin:0">or a single sheet as CSV:</span>
+    <span id="csvButtons"></span>
+  </div>
+  <div class="row"><label class="inline">Preview sheet <select id="previewSheet"></select></label><span class="hint" id="previewInfo" style="margin:0"></span></div>
+  <div class="preview" id="preview"></div>
+</section>
+
+<section id="sec-settings">
+  <h2>Settings</h2>
+  <p class="hint">Your template, column sets and options are remembered in this browser. Export them to share with a colleague or keep with the project.</p>
+  <div class="row">
+    <button id="exportCfg">Export settings (.json)</button>
+    <button id="importCfg">Import settings</button>
+    <input type="file" id="importCfgFile" accept=".json" style="display:none">
+    <button id="resetCfg">Reset to defaults</button>
+  </div>
+</section>
+
+<section id="sec-log">
+  <h2>Log</h2>
+  <pre class="log" id="log">Load files to start.</pre>
+</section>
+
+</main>
+
+<!--INLINE:xlsx-->
+<!--INLINE:core-->
+<script>
+(function () {
+  'use strict';
+  const C = window.FloJayCore;
+  const $ = id => document.getElementById(id);
+  const STORAGE_KEY = 'flowjo_combine_config_v1';
+
+  const state = { config: loadConfig(), files: [], result: null, previewSheet: null };
+
+  // ---------- config persistence ----------
+  function loadConfig() {
+    const def = C.defaultConfig();
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return mergeConfig(def, JSON.parse(raw));
+    } catch (e) { /* ignore */ }
+    return def;
+  }
+  function mergeConfig(def, obj) {
+    const c = JSON.parse(JSON.stringify(def));
+    if (!obj || typeof obj !== 'object') return c;
+    for (const k of ['template', 'useRegex', 'regex', 'statFilter', 'naText']) if (k in obj) c[k] = obj[k];
+    if (Array.isArray(obj.sets)) c.sets = obj.sets.filter(s => s && typeof s.name === 'string').map(s => ({ name: s.name, lines: String(s.lines || '') }));
+    if (obj.baseline) c.baseline = { ...c.baseline, ...obj.baseline };
+    if (obj.floor) c.floor = { ...c.floor, ...obj.floor };
+    if (obj.long) c.long = { ...c.long, ...obj.long };
+    return c;
+  }
+  function saveConfig() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.config)); } catch (e) { /* ignore */ }
+  }
+
+  // ---------- helpers ----------
+  const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  let timer = null;
+  function schedule() { clearTimeout(timer); timer = setTimeout(recompute, 150); }
+  function download(blob, name) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  const today = () => new Date().toISOString().slice(0, 10);
+
+  // ---------- files ----------
+  const drop = $('drop'), fileInput = $('fileInput');
+  drop.addEventListener('click', () => fileInput.click());
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); addFiles(e.dataTransfer.files); });
+  fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+
+  async function addFiles(list) {
+    for (const f of Array.from(list)) {
+      try {
+        const buf = await f.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const sheetName = C.pickSheet(wb.SheetNames);
+        state.files.push({ name: f.name, wb, sheetNames: wb.SheetNames, sheetName, error: null });
+      } catch (err) {
+        state.files.push({ name: f.name, wb: null, sheetNames: [], sheetName: null, error: String(err.message || err) });
+      }
+    }
+    recompute();
+  }
+  const aoaOf = (wb, sheet) => XLSX.utils.sheet_to_json(wb.Sheets[sheet], { header: 1, defval: null });
+
+  function renderFiles(tables) {
+    const el = $('fileList');
+    if (!state.files.length) { el.innerHTML = ''; return; }
+    let html = '<table class="list"><tr><th>File</th><th>Sheet</th><th>Rows kept</th><th>Rows dropped</th><th></th></tr>';
+    state.files.forEach((f, i) => {
+      const t = tables && tables[i];
+      const opts = f.sheetNames.map(s => '<option' + (s === f.sheetName ? ' selected' : '') + '>' + esc(s) + '</option>').join('');
+      html += '<tr><td>' + esc(f.name) + '</td>' +
+        '<td>' + (f.error ? '<span class="msg err" style="padding:2px 6px">' + esc(f.error) + '</span>' : '<select data-i="' + i + '" class="sheetSel" style="min-width:120px">' + opts + '</select>') + '</td>' +
+        '<td>' + (t ? t.rows.length : '') + '</td>' +
+        '<td>' + (t ? t.dropped.length : '') + '</td>' +
+        '<td><button class="small rmFile" data-i="' + i + '">Remove</button></td></tr>';
+    });
+    html += '</table>';
+    const dropped = (tables || []).filter(t => t.dropped.length);
+    const nDropped = dropped.reduce((a, t) => a + t.dropped.length, 0);
+    if (tables) {
+      html += '<details class="sq-details"><summary>' + nDropped + ' row' + (nDropped === 1 ? '' : 's') + ' dropped: name did not match the sample-name pattern</summary>' +
+        (nDropped ? dropped.map(t => '<p class="hint" style="margin:0 0 4px"><strong>' + esc(t.filename) + '</strong> (' + t.dropped.length + ')</p><ul class="matches">' +
+          t.dropped.map(n => '<li>' + esc(n) + '</li>').join('') + '</ul>').join('') : '<p class="hint">Every row matched.</p>') + '</details>';
+    }
+    el.innerHTML = html;
+    el.querySelectorAll('.rmFile').forEach(b => b.addEventListener('click', () => { state.files.splice(+b.dataset.i, 1); recompute(); }));
+    el.querySelectorAll('.sheetSel').forEach(s => s.addEventListener('change', () => { state.files[+s.dataset.i].sheetName = s.value; recompute(); }));
+  }
+
+  // ---------- name pattern ----------
+  $('template').value = state.config.template;
+  $('regex').value = state.config.regex;
+  $('useRegex').checked = !!state.config.useRegex;
+  $('regexRow').style.display = state.config.useRegex ? '' : 'none';
+  $('template').addEventListener('input', () => { state.config.template = $('template').value; saveConfig(); schedule(); });
+  $('regex').addEventListener('input', () => { state.config.regex = $('regex').value; saveConfig(); schedule(); });
+  $('useRegex').addEventListener('change', () => { state.config.useRegex = $('useRegex').checked; $('regexRow').style.display = state.config.useRegex ? '' : 'none'; saveConfig(); schedule(); });
+
+  function renderNamePreview(compiled, tables) {
+    const msg = $('nameMsg'), prev = $('namePreview');
+    if (!compiled) { prev.innerHTML = ''; return; }
+    msg.innerHTML = '<div class="msg ok">Fields: ' + compiled.fields.map(f => '<code>' + esc(f) + '</code>').join(' ') + '</div>';
+    if (!tables || !tables.length) { prev.innerHTML = ''; return; }
+    const rows = tables.flatMap(t => t.rows).slice(0, 5);
+    if (!rows.length) { prev.innerHTML = '<div class="msg warn">No sample names matched the pattern. Check the template against the first column of your file.</div>'; return; }
+    let html = '<table class="list"><tr><th>Sample name</th>' + compiled.fields.map(f => '<th>' + esc(f) + '</th>').join('') + '</tr>';
+    for (const r of rows) html += '<tr><td class="mono">' + esc(r.sample_id) + '</td>' + compiled.fields.map(f => '<td>' + esc(r.fields[f]) + '</td>').join('') + '</tr>';
+    html += '</table><p class="hint" style="margin-top:6px">Showing the first ' + rows.length + ' parsed names.</p>';
+    prev.innerHTML = html;
+  }
+
+  // ---------- column sets ----------
+  $('presetSel').innerHTML = Object.keys(C.PRESETS).map(n => '<option>' + esc(n) + '</option>').join('');
+  $('presetLoad').addEventListener('click', () => {
+    const preset = C.PRESETS[$('presetSel').value]; if (!preset) return;
+    const cur = state.config.sets;
+    const same = cur.length === preset.length && cur.every((s, i) => s.name === preset[i].name && s.lines === preset[i].lines);
+    if (!same && cur.some(s => s.lines.trim()) && !confirm('Replace the current column sets with preset "' + $('presetSel').value + '"?')) return;
+    state.config.sets = preset.map(s => ({ name: s.name, lines: s.lines }));
+    saveConfig(); recompute();
+  });
+  $('addSet').addEventListener('click', () => { state.config.sets.push({ name: 'New set', lines: '' }); saveConfig(); recompute(); });
+
+  function setStatus(s, headers) {
+    const res = headers ? C.resolveSelectors(s.lines, headers) : null;
+    return {
+      res,
+      n: res ? res.columns.length : null,
+      selected: new Set(res ? res.columns : []),
+      zero: res ? res.perLine.filter(l => !l.isComment && !l.matches.length).map(l => l.line.trim()) : [],
+    };
+  }
+  function badgeHtml(n) {
+    return n === null ? '<span class="badge muted">load files to see columns</span>'
+      : '<span class="badge' + (n ? '' : ' zero') + '">' + n + ' column' + (n === 1 ? '' : 's') + '</span>';
+  }
+  function warnHtml(zero) { return zero.length ? '<div class="msg warn">No column matched: ' + zero.map(esc).join(' ; ') + '</div>' : ''; }
+
+  function renderSets(headers) {
+    const el = $('sets');
+    el.innerHTML = '';
+    state.config.sets.forEach((s, i) => {
+      const st = setStatus(s, headers);
+      const card = document.createElement('div');
+      card.className = 'card';
+      let picker;
+      if (headers) {
+        picker = '<div class="row picker-tools"><input type="text" class="pickFilter" placeholder="Filter columns, e.g. TSCM or Count" style="min-width:280px">' +
+          '<button class="small pickAll">Tick all shown</button><button class="small pickNone">Untick all shown</button><label class="inline"><input type="checkbox" class="pickOnly"> ticked only</label><span class="hint pickCount" style="margin:0"></span></div>' +
+          '<div class="picker"><table>' + headers.map(h => {
+            const sh = C.shorthandFor(h, headers);
+            return '<tr data-h="' + esc(h) + '"><td><input type="checkbox" class="pick"' + (st.selected.has(h) ? ' checked' : '') + '></td><td class="sh">' + esc(sh) + '</td><td class="full">' + esc(h) + '</td></tr>';
+          }).join('') + '</table></div>';
+      } else {
+        picker = '<p class="hint">Load files to see the columns you can tick. You can still edit the selection as text below.</p>';
+      }
+      card.innerHTML =
+        '<div class="head"><input type="text" class="setName" value="' + esc(s.name) + '" placeholder="Set name">' + badgeHtml(st.n) +
+        '<span style="flex:1"></span><button class="small setUp" title="Move up">&uarr;</button><button class="small setDown" title="Move down">&darr;</button><button class="small setRm">Remove</button></div>' +
+        picker +
+        '<div class="setWarn">' + warnHtml(st.zero) + '</div>' +
+        '<details class="sq-details"><summary>Advanced: edit the selection as text</summary><textarea class="setLines" spellcheck="false">' + esc(s.lines) + '</textarea></details>';
+      card.querySelector('.setName').addEventListener('input', e => { s.name = e.target.value; saveConfig(); scheduleLight(); });
+      card.querySelector('.setLines').addEventListener('input', e => { s.lines = e.target.value; saveConfig(); scheduleLight(); });
+      card.querySelector('.setRm').addEventListener('click', () => { if (confirm('Remove set "' + s.name + '"?')) { state.config.sets.splice(i, 1); saveConfig(); recompute(); } });
+      card.querySelector('.setUp').addEventListener('click', () => { if (i > 0) { state.config.sets.splice(i - 1, 0, state.config.sets.splice(i, 1)[0]); saveConfig(); recompute(); } });
+      card.querySelector('.setDown').addEventListener('click', () => { if (i < state.config.sets.length - 1) { state.config.sets.splice(i + 1, 0, state.config.sets.splice(i, 1)[0]); saveConfig(); recompute(); } });
+      if (headers) {
+        const rows = Array.from(card.querySelectorAll('.picker tr'));
+        const visible = () => rows.filter(r => !r.classList.contains('hide'));
+        const applyFilter = () => {
+          const q = card.querySelector('.pickFilter').value.trim().toLowerCase();
+          const only = card.querySelector('.pickOnly').checked;
+          rows.forEach(r => r.classList.toggle('hide', (!!q && !r.dataset.h.toLowerCase().includes(q)) || (only && !r.querySelector('.pick').checked)));
+          card.querySelector('.pickCount').textContent = visible().length + ' of ' + headers.length + ' shown';
+        };
+        applyFilter();
+        card.querySelector('.pickFilter').addEventListener('input', applyFilter);
+        card.querySelector('.pickOnly').addEventListener('change', applyFilter);
+        card._applyFilter = applyFilter;
+        rows.forEach(r => r.querySelector('.pick').addEventListener('change', e => {
+          s.lines = C.toggleColumns(s.lines, [r.dataset.h], e.target.checked, headers);
+          saveConfig(); recompute({ keepSets: true });
+        }));
+        card.querySelector('.pickAll').addEventListener('click', () => { s.lines = C.toggleColumns(s.lines, visible().map(r => r.dataset.h), true, headers); saveConfig(); recompute({ keepSets: true }); });
+        card.querySelector('.pickNone').addEventListener('click', () => { s.lines = C.toggleColumns(s.lines, visible().map(r => r.dataset.h), false, headers); saveConfig(); recompute({ keepSets: true }); });
+      }
+      el.appendChild(card);
+    });
+  }
+  // typing in a textarea: recompute without re-rendering the cards (keeps focus, scroll and filters)
+  let lightTimer = null;
+  function scheduleLight() { clearTimeout(lightTimer); lightTimer = setTimeout(() => recompute({ keepSets: true }), 400); }
+  function refreshSetCards(headers) {
+    const cards = $('sets').querySelectorAll('.card');
+    state.config.sets.forEach((s, i) => {
+      const card = cards[i]; if (!card) return;
+      const st = setStatus(s, headers);
+      card.querySelector('.badge').outerHTML = badgeHtml(st.n);
+      card.querySelector('.setWarn').innerHTML = warnHtml(st.zero);
+      card.querySelectorAll('.picker tr').forEach(r => { r.querySelector('.pick').checked = st.selected.has(r.dataset.h); });
+      if (card._applyFilter) card._applyFilter();
+      const ta = card.querySelector('.setLines');
+      if (document.activeElement !== ta && ta.value !== s.lines) ta.value = s.lines;
+    });
+  }
+
+  // ---------- processing options ----------
+  const cfg = state.config;
+  $('blEnabled').checked = !!cfg.baseline.enabled;
+  $('blDrop').checked = !!cfg.baseline.dropBaselineRows;
+  $('blValue').value = cfg.baseline.value;
+  $('floorEnabled').checked = !!cfg.floor.enabled;
+  $('floorThr').value = cfg.floor.threshold;
+  $('statFilter').value = cfg.statFilter;
+  $('longAll').checked = !!cfg.long.allColumns;
+  $('naText').checked = cfg.naText !== false;
+  $('blEnabled').addEventListener('change', () => { cfg.baseline.enabled = $('blEnabled').checked; saveConfig(); schedule(); });
+  $('blDrop').addEventListener('change', () => { cfg.baseline.dropBaselineRows = $('blDrop').checked; saveConfig(); schedule(); });
+  $('blField').addEventListener('change', () => { cfg.baseline.field = $('blField').value; saveConfig(); schedule(); });
+  $('blValue').addEventListener('input', () => { cfg.baseline.value = $('blValue').value.trim(); saveConfig(); schedule(); });
+  $('floorEnabled').addEventListener('change', () => { cfg.floor.enabled = $('floorEnabled').checked; saveConfig(); schedule(); });
+  $('floorThr').addEventListener('input', () => { cfg.floor.threshold = Number($('floorThr').value); saveConfig(); schedule(); });
+  $('statFilter').addEventListener('input', () => { cfg.statFilter = $('statFilter').value; saveConfig(); schedule(); });
+  $('longAll').addEventListener('change', () => { cfg.long.allColumns = $('longAll').checked; saveConfig(); schedule(); });
+  $('naText').addEventListener('change', () => { cfg.naText = $('naText').checked; saveConfig(); schedule(); });
+
+  function renderProcessing(compiled, rows) {
+    const fieldSel = $('blField');
+    const fields = compiled ? compiled.fields : [];
+    fieldSel.innerHTML = fields.map(f => '<option' + (f === cfg.baseline.field ? ' selected' : '') + '>' + esc(f) + '</option>').join('');
+    if (fields.length && !fields.includes(cfg.baseline.field)) { cfg.baseline.field = fields[0]; fieldSel.value = fields[0]; }
+    const vals = new Set();
+    if (rows) for (const r of rows) vals.add(r.fields[cfg.baseline.field]);
+    $('blValues').innerHTML = Array.from(vals).sort().map(v => '<option value="' + esc(v) + '">').join('');
+    const others = fields.filter(f => f !== cfg.baseline.field);
+    $('blExplain').textContent = fields.length
+      ? 'For every row, the row with the same ' + (others.join(' + ') || '(no other fields)') + ' and ' + cfg.baseline.field + ' = "' + cfg.baseline.value + '" is subtracted. Rows with no matching baseline get NA.' +
+        (rows && vals.size && !vals.has(cfg.baseline.value) ? ' Warning: no row has ' + cfg.baseline.field + ' = "' + cfg.baseline.value + '". Values seen: ' + Array.from(vals).sort().join(', ') : '')
+      : '';
+  }
+
+  // ---------- export ----------
+  const outValue = v => (v === C.NA && cfg.naText === false ? null : v);
+  function sheetToAoa(sheet) { return [sheet.header, ...sheet.rows.map(r => r.map(outValue))]; }
+  $('dlXlsx').addEventListener('click', () => {
+    if (!state.result) return;
+    const wb = XLSX.utils.book_new();
+    const used = new Set();
+    for (const s of state.result.sheets) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheetToAoa(s)), C.safeSheetName(s.name, used));
+    XLSX.writeFile(wb, 'flojay_combined_' + today() + '.xlsx');
+  });
+  function renderExport() {
+    const r = state.result;
+    $('dlXlsx').disabled = !r;
+    const cb = $('csvButtons'); cb.innerHTML = '';
+    const ps = $('previewSheet'); ps.innerHTML = '';
+    if (!r) { $('preview').innerHTML = ''; $('previewInfo').textContent = ''; return; }
+    for (const s of r.sheets) {
+      if (s.name === 'Log') continue;
+      const b = document.createElement('button'); b.className = 'small'; b.textContent = s.name + '.csv';
+      b.addEventListener('click', () => {
+        const csv = cfg.naText === false ? C.toCsv({ header: s.header, rows: s.rows.map(row => row.map(v => (v === C.NA ? '' : v))) }) : C.toCsv(s);
+        download(new Blob([csv], { type: 'text/csv' }), 'flojay_' + C.snake(s.name) + '_' + today() + '.csv');
+      });
+      cb.appendChild(b);
+    }
+    ps.innerHTML = r.sheets.map(s => '<option' + (s.name === state.previewSheet ? ' selected' : '') + '>' + esc(s.name) + '</option>').join('');
+    if (!r.sheets.some(s => s.name === state.previewSheet)) state.previewSheet = r.sheets[0].name;
+    ps.value = state.previewSheet;
+    renderPreview();
+  }
+  $('previewSheet').addEventListener('change', () => { state.previewSheet = $('previewSheet').value; renderPreview(); });
+  function renderPreview() {
+    const r = state.result; if (!r) return;
+    const s = r.sheets.find(x => x.name === state.previewSheet) || r.sheets[0];
+    const maxR = 25, maxC = 14;
+    $('previewInfo').textContent = s.rows.length + ' rows x ' + s.header.length + ' columns' + (s.rows.length > maxR || s.header.length > maxC ? ' (showing first ' + Math.min(maxR, s.rows.length) + ' rows, ' + Math.min(maxC, s.header.length) + ' columns)' : '');
+    let html = '<table><tr>' + s.header.slice(0, maxC).map(h => '<th title="' + esc(h) + '">' + esc(h) + '</th>').join('') + '</tr>';
+    for (const row of s.rows.slice(0, maxR)) html += '<tr>' + row.slice(0, maxC).map(v => '<td class="' + (typeof v === 'number' ? '' : 'txt') + '">' + esc(v === null ? '' : v) + '</td>').join('') + '</tr>';
+    $('preview').innerHTML = html + '</table>';
+  }
+
+  // ---------- settings ----------
+  $('exportCfg').addEventListener('click', () => download(new Blob([JSON.stringify(state.config, null, 2)], { type: 'application/json' }), 'flojay_settings.json'));
+  $('importCfg').addEventListener('click', () => $('importCfgFile').click());
+  $('importCfgFile').addEventListener('change', async () => {
+    const f = $('importCfgFile').files[0]; if (!f) return;
+    try { state.config = mergeConfig(C.defaultConfig(), JSON.parse(await f.text())); saveConfig(); location.reload(); }
+    catch (e) { alert('Could not read settings: ' + e.message); }
+    $('importCfgFile').value = '';
+  });
+  $('resetCfg').addEventListener('click', () => { if (confirm('Reset template, column sets and options to defaults?')) { localStorage.removeItem(STORAGE_KEY); location.reload(); } });
+
+  // ---------- main recompute ----------
+  function recompute(opts) {
+    opts = opts || {};
+    let compiled = null, err = null;
+    try { compiled = C.compileNamePattern(state.config); } catch (e) { err = e.message; }
+    $('nameMsg').innerHTML = err ? '<div class="msg err">' + esc(err) + '</div>' : '';
+    let tables = null;
+    state.result = null;
+    const log = [];
+    if (compiled) {
+      tables = state.files.map(f => {
+        if (!f.wb) return { filename: f.name, sheetName: '', headers: [], rows: [], dropped: [] };
+        try { return C.loadTable({ filename: f.name, sheetName: f.sheetName, aoa: aoaOf(f.wb, f.sheetName) }, compiled); }
+        catch (e) { log.push('ERROR in ' + f.name + ': ' + e.message); return { filename: f.name, sheetName: f.sheetName, headers: [], rows: [], dropped: [] }; }
+      });
+      const good = tables.filter(t => t.headers.length);
+      if (good.length) {
+        try { state.result = C.run(good, state.config); }
+        catch (e) { log.push('ERROR: ' + e.message); }
+      }
+    }
+    const headers = state.result ? state.result.headers : null;
+    const headerKey = headers ? headers.join('\u0001') : '';
+    if (headerKey !== state.lastHeaderKey) { opts.keepSets = false; state.lastHeaderKey = headerKey; }
+    renderFiles(tables);
+    renderNamePreview(compiled, tables);
+    if (opts.keepSets && $('sets').children.length === state.config.sets.length) refreshSetCards(headers); else renderSets(headers);
+    renderProcessing(compiled, state.result ? state.result.rows : null);
+    renderExport();
+    const r = state.result;
+    const msg = $('runMsg');
+    if (r) {
+      msg.innerHTML = (r.warnings.length ? r.warnings.map(w => '<div class="msg warn">' + esc(w) + '</div>').join('') : '') +
+        '<div class="msg ok">' + r.rows.length + ' samples from ' + state.files.filter(f => f.wb).length + ' file(s), ' + r.headers.length + ' columns, ' + r.sheets.length + ' sheets ready.</div>';
+      $('log').textContent = [...log, ...r.log, ...r.warnings.map(w => 'WARNING: ' + w)].join('\n');
+      $('hdrStatus').textContent = r.rows.length + ' samples · ' + state.files.filter(f => f.wb).length + ' file(s)';
+    } else {
+      msg.innerHTML = '';
+      $('log').textContent = log.length ? log.join('\n') : (state.files.length ? 'Fix the errors above.' : 'Load files to start.');
+      $('hdrStatus').textContent = '';
+    }
+  }
+
+  recompute();
+  window.__flojay = { addFiles, state };  // test hook
+})();
+</script>
+</body>
+</html>

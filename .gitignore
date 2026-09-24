@@ -1,0 +1,4 @@
+.DS_Store
+# Real sample data: keep out of the public repo
+*.xlsx
+untitled folder/

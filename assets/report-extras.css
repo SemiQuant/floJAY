@@ -1,0 +1,364 @@
+/*
+  Companion sheet for Dash_v1.2.css.
+  Dash_v1.2 sets the SemiQuant palette (dark ground, cream text, green/blue accents)
+  for dashboard furniture; this adapts the same palette to a long-form
+  rmarkdown html_document: headings, floating TOC, code, tables, blockquotes,
+  figures. Palette taken from Dash_v1.2.css:
+    ground #272726  panel #2E2D2D  raised #3A3A39  hover #575656
+    text   #FEFBE8  green #CFE197  blue  #8BCEDD   teal  #5a9dab  link #e4359d
+*/
+
+:root {
+  --sq-ground: #272726;
+  --sq-panel:  #2E2D2D;
+  --sq-raised: #3A3A39;
+  --sq-hover:  #575656;
+  --sq-text:   #FEFBE8;
+  --sq-green:  #CFE197;
+  --sq-blue:   #8BCEDD;
+  --sq-teal:   #5a9dab;
+  --sq-link:   #e4359d;
+  --sq-rule:   #4a4a48;
+}
+
+/* ---------------------------------------------------------------- document */
+
+body {
+  color: var(--sq-text);
+  padding-top: 84px;          /* clears the fixed header bar below */
+}
+
+.main-container {
+  max-width: 1080px;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+h1, h2, h3, h6 { color: var(--sq-text); font-weight: 600; }
+h1 {
+  color: var(--sq-text);
+  border-bottom: 2px solid var(--sq-blue);
+  padding-bottom: 6px;
+  margin-top: 1.8em;
+}
+h1.title { border-bottom: none; }
+h2 { color: var(--sq-green); margin-top: 1.6em; }
+h3 { color: var(--sq-blue); font-size: 1.3em; }
+h6 { color: var(--sq-teal); }
+
+/* the author/date block under the title */
+h4.author, h4.date {
+  color: var(--sq-teal);
+  font-size: 1em;
+  font-weight: 400;
+  margin: 0.2em 0;
+}
+h3.subtitle { color: var(--sq-teal); font-weight: 400; }
+
+hr { border-color: var(--sq-rule); }
+
+/* Dash colours list items; keep the accent on the marker, not the text */
+ul li, ol li { color: var(--sq-text); font-size: 18px; }
+ul li::marker, ol li::marker { color: var(--sq-teal); }
+
+strong { color: #ffffff; }
+
+/* ------------------------------------------------------------- floating TOC */
+
+/* tocify builds the TOC at runtime out of bootstrap list-group items, which
+   default to a white ground; every layer needs overriding explicitly. */
+#TOC, .tocify {
+  background-color: var(--sq-panel) !important;
+  border: 1px solid var(--sq-raised) !important;
+  border-radius: 3px;
+  top: 96px;
+  max-height: calc(100vh - 130px);
+  padding: 4px 0;
+}
+.tocify ul, .tocify li, .tocify .nav-list, .tocify .tocify-header, .tocify .tocify-subheader {
+  background-color: transparent !important;
+  border: none !important;
+}
+.tocify .list-group-item, .tocify .tocify-item > a {
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--sq-text) !important;
+  font-size: 13px;
+  padding: 5px 12px;
+}
+.tocify .list-group-item:hover, .tocify .tocify-item > a:hover {
+  background-color: var(--sq-ground) !important;
+  color: var(--sq-blue) !important;
+}
+.tocify .list-group-item.active,
+.tocify .tocify-item.active > a,
+.tocify .list-group-item.active:hover,
+.tocify .list-group-item.active:focus {
+  background-color: var(--sq-ground) !important;
+  color: var(--sq-green) !important;
+  border-left: 3px solid var(--sq-blue) !important;
+  font-weight: 600;
+}
+.tocify .tocify-subheader .tocify-item > a,
+.tocify .tocify-subheader .list-group-item { padding-left: 26px; font-size: 12px; }
+.tocify .tocify-subheader { display: none; }
+.tocify .tocify-subheader.tocify-focus, .tocify .tocify-item.active + .tocify-subheader { display: block; }
+
+/* ---------------------------------------------------------------- code */
+
+code {
+  background: var(--sq-panel);
+  color: var(--sq-green);
+  border: 1px solid var(--sq-raised);
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-size: 90%;
+}
+
+/* highlight.js ships its own light background for pre/code blocks, so these
+   need !important to land */
+pre, pre code, .sourceCode, code.hljs, .hljs {
+  background: #1f1f1e !important;
+  color: #dcd9cf !important;
+  border-radius: 3px;
+}
+pre {
+  border: 1px solid var(--sq-raised) !important;
+  padding: 12px 14px;
+  font-size: 13px;
+}
+pre code, code.hljs {
+  border: none !important;
+  padding: 0 !important;
+  font-size: 13px;
+}
+
+/* highlight.js tokens, recoloured for a dark ground */
+pre code .hljs-keyword, pre code .hljs-literal, pre code .hljs-built_in { color: var(--sq-blue); }
+pre code .hljs-string, pre code .hljs-meta                              { color: var(--sq-green); }
+pre code .hljs-number                                                   { color: #e8b866; }
+pre code .hljs-comment                                                  { color: #8a8778; font-style: italic; }
+pre code .hljs-attr, pre code .hljs-title                               { color: var(--sq-teal); }
+
+/* code-folding buttons */
+.btn-default {
+  background: var(--sq-panel);
+  border-color: var(--sq-raised);
+  color: var(--sq-blue);
+}
+.btn-default:hover, .btn-default:focus {
+  background: var(--sq-raised);
+  border-color: var(--sq-blue);
+  color: var(--sq-text);
+}
+
+/* ---------------------------------------------------------------- tables */
+
+/* Dash sets .table to 40% width for dashboard tiles; long-form tables need room */
+.table, table {
+  width: auto !important;
+  max-width: 100%;
+  background-color: var(--sq-ground);
+  margin-bottom: 1.2em;
+}
+.table > thead > tr > th,
+.table > tbody > tr > th,
+th {
+  color: var(--sq-blue) !important;
+  background-color: var(--sq-panel);
+  border-color: var(--sq-rule) !important;
+  font-size: 15px;
+  font-weight: 600;
+}
+.table > tbody > tr > td, td {
+  border-color: var(--sq-rule) !important;
+  font-size: 15px !important;
+}
+.table-striped > tbody > tr:nth-of-type(odd),
+.table-striped > tbody > tr:nth-of-type(odd) > td {
+  background-color: var(--sq-panel);
+}
+.table-hover > tbody > tr:hover,
+.table-hover > tbody > tr:hover > td { background-color: var(--sq-hover); }
+caption, .table caption {
+  color: var(--sq-green);
+  font-weight: 600;
+  font-size: 15px;
+  padding-bottom: 6px;
+}
+/* wide tables scroll rather than overflow the page */
+.kable_wrapper, .table-responsive { overflow-x: auto; }
+
+/* paged tables (df_print: paged) */
+.pagedtable, .pagedtable-wrapper {
+  background: var(--sq-ground);
+  color: var(--sq-text);
+  border-color: var(--sq-raised);
+}
+.pagedtable-header-name, .pagedtable-index-nav { color: var(--sq-blue); }
+
+/* --------------------------------------------------------- figure explainers */
+
+blockquote {
+  background: var(--sq-panel);
+  border-left: 4px solid var(--sq-blue);
+  border-radius: 0 3px 3px 0;
+  color: var(--sq-text);
+  padding: 12px 18px;
+  margin: 18px 0 24px;
+  font-size: 16px;
+}
+blockquote p { font-size: 16px !important; margin-bottom: 0.6em; }
+blockquote p:last-child { margin-bottom: 0; }
+blockquote strong { color: var(--sq-green); }
+blockquote ul li { font-size: 16px; }
+
+/* --------------------------------------------------- collapsible sections */
+
+/* <details class="sq-details"> wraps sections that must run but should not
+   clutter the report (import log, duplicate-block audit). */
+.sq-details {
+  background: var(--sq-panel);
+  border: 1px solid var(--sq-raised);
+  border-left: 4px solid var(--sq-teal);
+  border-radius: 0 3px 3px 0;
+  margin: 18px 0 24px;
+  padding: 0 18px;
+}
+.sq-details > summary {
+  color: var(--sq-teal);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 12px 0;
+  list-style-position: outside;
+}
+.sq-details > summary:hover { color: var(--sq-blue); }
+.sq-details[open] > summary {
+  border-bottom: 1px solid var(--sq-rule);
+  margin-bottom: 14px;
+}
+.sq-details[open] { padding-bottom: 6px; }
+/* raw <h2>/<h3> inside stay out of the TOC, so give them the same accents */
+.sq-details h2 { color: var(--sq-green); font-size: 1.4em; }
+.sq-details h3 { color: var(--sq-blue); font-size: 1.2em; }
+
+/* ---------------------------------------------------------------- figures */
+
+.figure, p > img, img.rounded {
+  background: #ffffff;
+  padding: 10px;
+  border: 1px solid var(--sq-raised);
+  border-radius: 4px;
+}
+img { max-width: 100%; height: auto; }
+.caption, p.caption { color: var(--sq-teal); font-size: 14px; padding-top: 6px; }
+
+/* ------------------------------------------------------------- header bar */
+
+.sq-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 64px;
+  z-index: 1030;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  background: var(--sq-panel);
+  border-bottom: 2px solid var(--sq-blue);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+.sq-header img { height: 44px; width: auto; background: none; padding: 0; border: none; }
+.sq-header .sq-title {
+  color: var(--sq-text);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.sq-header .sq-sub { color: var(--sq-teal); font-size: 13px; font-weight: 400; }
+.sq-header .sq-right { margin-left: auto; text-align: right; }
+.sq-header .sq-right a { color: var(--sq-blue); font-size: 13px; }
+.sq-header .sq-right a:hover { color: var(--sq-link); }
+
+@media (max-width: 768px) {
+  .sq-header .sq-sub, .sq-header .sq-right { display: none; }
+  body { padding-top: 70px; }
+}
+
+/* ---------------------------------------------------------------- links */
+
+a:hover, a:focus { color: var(--sq-blue); text-decoration: underline; }
+
+/* ---------------------------------------------------------------- print */
+/* the dark ground is for screen; printing flips to ink-on-paper */
+@media print {
+  body { background: #fff !important; color: #111 !important; padding-top: 0 !important; }
+  .sq-header { position: static; background: #fff !important; border-bottom: 1px solid #999; }
+  .sq-header .sq-title, .sq-header .sq-sub, .sq-header .sq-right { color: #111 !important; }
+  #TOC, .tocify { display: none !important; }
+  .toc-content { width: 100% !important; }
+  h1, h2, h3, h4, h5, h6 { color: #111 !important; }
+  p, li, td, .table > tbody > tr > td { color: #111 !important; }
+  th, .table > thead > tr > th { color: #111 !important; background: #eee !important; }
+  .table, table { background: #fff !important; }
+  blockquote { background: #f4f4f4 !important; color: #111 !important; border-left-color: #666 !important; }
+  blockquote strong { color: #111 !important; }
+  .sq-details { background: #fff !important; border-color: #999 !important; }
+  .sq-details > summary { color: #111 !important; }
+  pre, pre code, code, .hljs { background: #f6f6f6 !important; color: #111 !important; border-color: #ccc !important; }
+  .figure, p > img { background: #fff !important; border: none !important; padding: 0 !important; }
+  a { color: #111 !important; text-decoration: underline; }
+}
+
+/* ------------------------------------------------------- plain-answer boxes */
+/* <div class="sq-answer"> holds the everyday-language answer to one question,
+   with a coloured verdict pill. These are the part a non-statistician reads. */
+.sq-answer {
+  background: var(--sq-panel);
+  border: 1px solid var(--sq-raised);
+  border-left: 4px solid var(--sq-green);
+  border-radius: 0 4px 4px 0;
+  padding: 14px 18px 4px;
+  margin: 16px 0 20px;
+}
+.sq-answer .sq-answer-q {
+  color: var(--sq-green) !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  margin-bottom: 8px;
+}
+.sq-answer p { font-size: 16px !important; }
+
+.sq-pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 11px;
+  margin-right: 10px;
+  vertical-align: 2px;
+  white-space: nowrap;
+}
+.sq-pill.sq-yes   { background: #2f6f4f; color: #eafbf1; }
+.sq-pill.sq-maybe { background: #7a6428; color: #fdf6e0; }
+.sq-pill.sq-no    { background: #4a4a48; color: #eceada; }
+
+/* the headline block at the top of the report */
+.sq-lead {
+  font-size: 17px !important;
+  color: var(--sq-text) !important;
+  border-left: 4px solid var(--sq-blue);
+  background: var(--sq-panel);
+  padding: 14px 18px;
+  margin: 16px 0 22px;
+  border-radius: 0 4px 4px 0;
+}
+
+@media print {
+  .sq-answer, .sq-lead { background: #fff !important; border-color: #999 !important; }
+  .sq-answer .sq-answer-q { color: #111 !important; }
+  .sq-pill { border: 1px solid #111; color: #111 !important; background: #fff !important; }
+}
