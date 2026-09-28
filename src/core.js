@@ -80,15 +80,25 @@
 
   function defaultConfig() {
     return {
+      version: 2,
       template: '{PID} - {TIMEPOINT}_{ANTIGEN}',
       useRegex: false,
       regex: '^\\s*(?<PID>.+?)\\s*-\\s*(?<TIMEPOINT>.+?)_(?<ANTIGEN>.+?)\\s*$',
       sets: DEFAULT_SETS.map(s => ({ name: s.name, lines: s.lines })),
-      baseline: { enabled: true, field: 'TIMEPOINT', value: 'BL', dropBaselineRows: true },
+      // background: every row minus the unstimulated (NS) row with the same PID + TIMEPOINT
+      baseline: { enabled: true, field: 'ANTIGEN', value: 'NS', dropBaselineRows: true },
       statFilter: 'Freq.',
       floor: { enabled: true, threshold: 0.0001 },
       long: { allColumns: false },
     };
+  }
+
+  // Saved settings without a version defaulted to subtracting TIMEPOINT = BL instead of the NS background.
+  function migrateConfig(obj) {
+    if (!obj || typeof obj !== 'object' || obj.version >= 2) return obj;
+    const b = obj.baseline;
+    if (!b || b.field !== 'TIMEPOINT' || b.value !== 'BL') return obj;
+    return { ...obj, baseline: { ...b, field: 'ANTIGEN', value: 'NS', dropBaselineRows: true } };
   }
 
   // ---------- sample-name parsing ----------
@@ -315,6 +325,9 @@
           '" (' + missing + ' missing, ' + extra + ' extra, or different order). Columns were aligned by name; missing cells are NA.');
       }
     }
+    // each file is one plate: batch = its position in the file list (1, 2, ...)
+    tables.forEach((t, i) => { for (const r of t.rows) r.batch = i + 1; });
+    log.push('Batches (one per file): ' + tables.map((t, i) => (i + 1) + ' = "' + t.filename + '"').join(', '));
     const rows = tables.flatMap(t => t.rows);
     const parsedHeaders = headers.map(parseHeader);
     const filtered = new Set(headers.filter((h, i) => statMatches(parsedHeaders[i].stat, config.statFilter)));
@@ -326,10 +339,10 @@
     const dups = Object.keys(idCount).filter(k => idCount[k] > 1);
     if (dups.length) warnings.push('Sample names present more than once across files: ' + dups.join(', '));
 
-    // baseline subtraction
+    // background subtraction
     const bl = config.baseline || {};
     const doSub = !!bl.enabled && fields.includes(bl.field);
-    if (bl.enabled && !fields.includes(bl.field)) warnings.push('Baseline field "' + bl.field + '" is not one of the parsed fields; subtraction skipped.');
+    if (bl.enabled && !fields.includes(bl.field)) warnings.push('Background field "' + bl.field + '" is not one of the parsed fields; subtraction skipped.');
     for (const r of rows) { r.subtracted = null; r.isBaseline = false; }
     if (doSub) {
       const others = fields.filter(f => f !== bl.field);
@@ -355,12 +368,12 @@
         }
         nSub++;
       }
-      log.push('Baseline subtraction: ' + bl.field + ' = "' + bl.value + '" subtracted from the other rows with the same ' +
-        others.join(' + ') + '. ' + nSub + ' rows subtracted, ' + Object.values(baselines).flat().length + ' baseline rows' +
-        (bl.dropBaselineRows ? ' (dropped from subtracted tables)' : ' (kept, values are 0)') + ', ' + nNoBase + ' rows with no baseline (NA).');
-      if (nNoBase) warnings.push(nNoBase + ' row(s) had no matching ' + bl.value + ' baseline; their subtracted values are NA.');
+      log.push('Background subtraction: ' + bl.field + ' = "' + bl.value + '" subtracted from the other rows with the same ' +
+        others.join(' + ') + '. ' + nSub + ' rows subtracted, ' + Object.values(baselines).flat().length + ' background rows' +
+        (bl.dropBaselineRows ? ' (dropped from subtracted tables)' : ' (kept, values are 0)') + ', ' + nNoBase + ' rows with no background (NA).');
+      if (nNoBase) warnings.push(nNoBase + ' row(s) had no matching ' + bl.value + ' background; their subtracted values are NA.');
     } else {
-      log.push('Baseline subtraction: off');
+      log.push('Background subtraction: off');
     }
 
     // floor
@@ -381,8 +394,8 @@
     });
 
     // ---- build sheets ----
-    const metaCols = ['sample_id', ...fields, 'source_file'];
-    const metaOf = r => [r.sample_id, ...fields.map(f => r.fields[f]), r.source_file];
+    const metaCols = ['sample_id', ...fields, 'batch', 'source_file'];
+    const metaOf = r => [r.sample_id, ...fields.map(f => r.fields[f]), r.batch, r.source_file];
     const out = v => (v === null || v === undefined ? NA : v);
 
     const wide = (name, cols, rowsIn, getter) => ({
@@ -406,7 +419,7 @@
     }
 
     // long
-    const longHeader = ['sample_id', ...fields.map(snake), 'source_file', 'panel', 'population', 'gate', 'statistic', 'column', 'value',
+    const longHeader = ['sample_id', ...fields.map(snake), 'batch', 'source_file', 'panel', 'population', 'gate', 'statistic', 'column', 'value',
       ...(doSub ? ['value_minus_' + snake(bl.value)] : [])];
     const longRows = [];
     const panels = (config.long && config.long.allColumns) ? [{ name: 'Table', columns: headers }] : sets;
@@ -451,7 +464,7 @@
   }
 
   return {
-    NA, DEFAULT_SETS, PRESETS, defaultConfig, toggleColumns,
+    NA, DEFAULT_SETS, PRESETS, defaultConfig, migrateConfig, toggleColumns,
     compileTemplate, compileRegex, compileNamePattern, parseSampleName,
     parseHeader, matchSelector, resolveSelectors, shorthandFor,
     pickSheet, coerce, loadTable, run, snake, safeSheetName, toCsv,

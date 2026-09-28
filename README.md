@@ -1,9 +1,10 @@
 # floJAY
 
 A single HTML file that combines FlowJo table exports, rebuilds the panel tabs
-(Cytokines, Phenotype-ALL, or any set you define), subtracts a baseline, floors
-tiny values, and writes a tidy long-format table. Everything runs inside the
-browser; no data leaves your computer and no internet is needed.
+(Cytokines, Phenotype-ALL, or any set you define), subtracts the unstimulated
+(NS) background, floors tiny values, and writes a tidy long-format table.
+Everything runs inside the browser; no data leaves your computer and no
+internet is needed.
 
 ## Use it
 
@@ -20,7 +21,7 @@ browser; no data leaves your computer and no internet is needed.
    The gate part only needs the end of the gating path (e.g. `CD4+/GMCSF+`),
    the statistic only its start (`Freq. of Parent`). `*` is a wildcard; leave
    out `| Statistic` to take every statistic; `#` starts a comment.
-5. Set the processing options (baseline subtraction, floor, NA).
+5. Set the processing options (background subtraction, floor, NA).
 6. Download the combined `.xlsx` or a single sheet as `.csv`.
 
 Settings are remembered in the browser. Use *Export settings* to share them.
@@ -29,11 +30,15 @@ Settings are remembered in the browser. Use *Export settings* to share them.
 
 | Sheet | Content |
 |---|---|
-| `Table` | All samples from all files, all columns, plus `sample_id`, the template fields and `source_file`. |
+| `Table` | All samples from all files, all columns, plus `sample_id`, the template fields, `batch` and `source_file`. |
 | one per set (e.g. `Cytokines`) | The columns matched by that set. |
-| `<set>_minus<baseline>` | Same columns minus the baseline row (only statistics matching the filter, default `Freq.`; baseline rows dropped). |
-| `Long` | One row per sample x column: `sample_id`, `pid`, `timepoint`, `antigen`, `source_file`, `panel`, `population`, `gate`, `statistic`, `column`, `value`, `value_minus_bl`. |
+| `<set>_minusNS` | Same columns minus the NS row with the same PID and TIMEPOINT (only statistics matching the filter, default `Freq.`; NS rows dropped). The background field and value can be changed under Processing. |
+| `Long` | One row per sample x column: `sample_id`, `pid`, `timepoint`, `antigen`, `batch`, `source_file`, `panel`, `population`, `gate`, `statistic`, `column`, `value`, `value_minus_ns`. |
 | `Log` | What was done: files, rows dropped, selectors, settings, warnings. |
+
+Each input file is one plate. Every wide and long sheet has a `batch` column
+(1, 2, ... in the order the files were loaded) next to `source_file`, and the
+`Log` sheet lists which file is which batch.
 
 Missing values are written as `NA`. Values below the floor (default 0.0001)
 are set to the floor after subtraction, so negative differences become 0.0001.

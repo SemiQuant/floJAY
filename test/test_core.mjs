@@ -46,7 +46,7 @@ test('default sets reproduce the original tabs exactly', () => {
     const orig = aoaOf(wb.Sheets[tabName]);
     const origHeaders = orig[0].slice(1);
     const got = sheet(setName);
-    const nMeta = res.fields.length + 2;
+    const nMeta = res.fields.length + 3;
     assert.deepEqual(got.header.slice(nMeta), origHeaders, setName + ' headers');
     // the hand-made tabs are sorted differently from Table, so compare by sample name
     const byName = new Map(got.rows.map(r => [r[0], r]));
@@ -62,47 +62,96 @@ test('default sets reproduce the original tabs exactly', () => {
   }
 });
 
+test('batch = plate (file) number on wide and long sheets', () => {
+  for (const s of res.sheets.filter(s => s.name !== 'Log')) {
+    const bi = s.header.indexOf('batch'), fi = s.header.indexOf('source_file');
+    assert.ok(bi > 0 && fi === bi + 1, s.name);
+    for (const row of s.rows) assert.equal(row[bi], FILES.indexOf(row[fi]) + 1, s.name);
+  }
+  assert.ok(res.log.includes('Batches (one per file): 1 = "' + FILES[0] + '", 2 = "' + FILES[1] + '"'));
+});
+
 test('Table sheet has all columns and 96 rows', () => {
   const t = sheet('Table');
   assert.equal(t.rows.length, 96);
-  assert.equal(t.header.length, 5 + 280);
-  assert.deepEqual(t.header.slice(0, 5), ['sample_id', 'PID', 'TIMEPOINT', 'ANTIGEN', 'source_file']);
+  assert.equal(t.header.length, 6 + 280);
+  assert.deepEqual(t.header.slice(0, 6), ['sample_id', 'PID', 'TIMEPOINT', 'ANTIGEN', 'batch', 'source_file']);
 });
 
-test('baseline subtraction (BL from FU1) for 71002 / RimJ', () => {
-  const cy = sheet('Cytokines');
-  const sub = sheet('Cytokines_minusBL');
-  const col = 'Lymphocytes/Single Cells/Live cells/CD3+/CD4+/GMCSF+ | Freq. of Parent (%)';
-  const j = cy.header.indexOf(col);
-  const bl = cy.rows.find(r => r[0] === '71002 - BL_RimJ')[j];
-  const fu1 = cy.rows.find(r => r[0] === '71002 - FU1_RimJ')[j];
-  assert.equal(bl, 0.72); assert.equal(fu1, 0.75);
-  const got = sub.rows.find(r => r[0] === '71002 - FU1_RimJ')[sub.header.indexOf(col)];
-  assert.ok(Math.abs(got - 0.03) < 1e-9, 'got ' + got);
-  // negative difference is floored
-  const fu2 = cy.rows.find(r => r[0] === '71002 - FU2_RimJ')[j]; // 0.51? whichever, compute
-  const expect = fu2 - bl < 0.0001 ? 0.0001 : fu2 - bl;
-  const got2 = sub.rows.find(r => r[0] === '71002 - FU2_RimJ')[sub.header.indexOf(col)];
-  assert.ok(Math.abs(got2 - expect) < 1e-9);
-  // baseline rows dropped
-  assert.ok(!sub.rows.some(r => r[2] === 'BL'));
-  assert.equal(sub.rows.length, 96 - res.rows.filter(r => r.isBaseline).length);
+const GMCSF = 'Lymphocytes/Single Cells/Live cells/CD3+/CD4+/GMCSF+ | Freq. of Parent (%)';
+
+test('background: every row minus the NS row with the same PID and timepoint', () => {
+  const nMeta = res.fields.length + 3;
+  const byId = new Map(res.rows.map(r => [r.sample_id, r]));
+  const ns = new Map(res.rows.filter(r => r.fields.ANTIGEN === 'NS').map(r => [r.fields.PID + '|' + r.fields.TIMEPOINT, r]));
+  let checked = 0;
+  for (const name of ['Cytokines_minusNS', 'Phenotype-ALL_minusNS']) {
+    const sub = sheet(name);
+    for (const row of sub.rows) {
+      const r = byId.get(row[0]);
+      const b = ns.get(r.fields.PID + '|' + r.fields.TIMEPOINT);
+      sub.header.slice(nMeta).forEach((h, j) => {
+        const d = r.values[h] - b.values[h];
+        assert.ok(Math.abs(row[nMeta + j] - (d < 0.0001 ? 0.0001 : d)) < 1e-12, name + ' ' + row[0] + ' ' + h);
+        checked++;
+      });
+    }
+  }
+  assert.equal(checked, 74 * (8 + 44));
+  // spot checks from the raw values: FU2 LldD2 uses FU2_NS (not FU1_NS), 73003 FU2 RimJ uses 73003 FU2_NS
+  const cy = sheet('Cytokines_minusNS');
+  const val = id => cy.rows.find(r => r[0] === id)[cy.header.indexOf(GMCSF)];
+  assert.ok(Math.abs(val('71002 - FU2_LldD2') - (0.87 - 0.18)) < 1e-12);
+  assert.ok(Math.abs(val('73003- FU2_RimJ') - (0.16 - 0.11)) < 1e-12);
+});
+
+test('NS rows are dropped from the subtracted sheets', () => {
+  assert.equal(res.rows.filter(r => r.fields.ANTIGEN === 'NS').length, 22);
+  for (const name of ['Cytokines_minusNS', 'Phenotype-ALL_minusNS']) {
+    const sub = sheet(name);
+    assert.ok(!sub.rows.some(r => r[3] === 'NS'), name);
+    assert.equal(sub.rows.length, 96 - 22);
+  }
 });
 
 test('Count columns excluded from subtracted tables, present in raw', () => {
-  const ph = sheet('Phenotype-ALL'), sub = sheet('Phenotype-ALL_minusBL');
+  const ph = sheet('Phenotype-ALL'), sub = sheet('Phenotype-ALL_minusNS');
   assert.equal(ph.header.filter(h => h.endsWith('| Count')).length, 4);
   assert.equal(sub.header.filter(h => h.endsWith('| Count')).length, 0);
-  assert.equal(sub.header.length, 5 + 44);
+  assert.equal(sub.header.length, 6 + 44);
 });
 
-test('missing baseline -> NA', () => {
+test('missing NS -> NA', () => {
+  const t2 = tables.map(t => ({ ...t, rows: t.rows.filter(r => r.sample_id !== '71002 - FU3_NS') }));
+  const r = C.run(t2, config);
+  const sub = r.sheets.find(s => s.name === 'Cytokines_minusNS');
+  for (const id of ['71002 - FU3_RimJ', '71002 - FU3_Rv0012']) assert.ok(sub.rows.find(x => x[0] === id).slice(6).every(v => v === 'NA'), id);
+  assert.ok(r.warnings.some(w => /^2 row\(s\) had no matching NS background/.test(w)));
+});
+
+test('TIMEPOINT = BL subtraction still works when chosen', () => {
+  const r = C.run(tables, { ...config, baseline: { enabled: true, field: 'TIMEPOINT', value: 'BL', dropBaselineRows: true } });
+  const cy = r.sheets.find(s => s.name === 'Cytokines'), sub = r.sheets.find(s => s.name === 'Cytokines_minusBL');
+  const j = cy.header.indexOf(GMCSF);
+  assert.equal(cy.rows.find(x => x[0] === '71002 - BL_RimJ')[j], 0.72);
+  assert.equal(cy.rows.find(x => x[0] === '71002 - FU1_RimJ')[j], 0.75);
+  const got = sub.rows.find(x => x[0] === '71002 - FU1_RimJ')[sub.header.indexOf(GMCSF)];
+  assert.ok(Math.abs(got - 0.03) < 1e-9, 'got ' + got);
+  assert.ok(!sub.rows.some(x => x[2] === 'BL'));
   // 71002 - FU2_LldD2 has no 71002 - BL_LldD2
-  const sub = sheet('Cytokines_minusBL');
-  const row = sub.rows.find(r => r[0] === '71002 - FU2_LldD2');
-  assert.ok(row);
-  assert.ok(row.slice(5).every(v => v === 'NA'));
-  assert.ok(res.warnings.some(w => /no matching BL baseline/.test(w)));
+  assert.ok(sub.rows.find(x => x[0] === '71002 - FU2_LldD2').slice(6).every(v => v === 'NA'));
+  assert.ok(r.warnings.some(w => /no matching BL background/.test(w)));
+});
+
+test('settings saved before version 2 move from BL to the NS background', () => {
+  const old = { template: 'x', baseline: { enabled: true, field: 'TIMEPOINT', value: 'BL', dropBaselineRows: false } };
+  assert.deepEqual(C.migrateConfig(old).baseline, { enabled: true, field: 'ANTIGEN', value: 'NS', dropBaselineRows: true });
+  assert.equal(C.migrateConfig(old).template, 'x');
+  const chosen = { version: 2, baseline: { enabled: true, field: 'TIMEPOINT', value: 'BL', dropBaselineRows: true } };
+  assert.equal(C.migrateConfig(chosen), chosen);
+  const custom = { baseline: { enabled: true, field: 'ANTIGEN', value: 'Unstim' } };
+  assert.equal(C.migrateConfig(custom), custom);
+  assert.equal(C.defaultConfig().version, 2);
 });
 
 test('floor and NA on synthetic data', () => {
@@ -117,33 +166,33 @@ test('floor and NA on synthetic data', () => {
   assert.equal(t.rows.length, 3);
   const r = C.run([t], config);
   const tab = r.sheets.find(s => s.name === 'Table');
-  assert.deepEqual(tab.rows[0].slice(5), [0.0001, 0]);       // freq floored, count untouched
-  assert.deepEqual(tab.rows[1].slice(5), ['NA', 'NA']);
-  assert.deepEqual(tab.rows[2].slice(5), [0.0001, 5]);
+  assert.deepEqual(tab.rows[0].slice(6), [0.0001, 0]);       // freq floored, count untouched
+  assert.deepEqual(tab.rows[1].slice(6), ['NA', 'NA']);
+  assert.deepEqual(tab.rows[2].slice(6), [0.0001, 5]);
   const cfg2 = { ...config, floor: { enabled: false } };
   const r2 = C.run([t], cfg2);
-  assert.deepEqual(r2.sheets.find(s => s.name === 'Table').rows[2].slice(5), [-3, 5]);
+  assert.deepEqual(r2.sheets.find(s => s.name === 'Table').rows[2].slice(6), [-3, 5]);
 });
 
 test('long format shape and round trip', () => {
   const L = sheet('Long');
-  assert.deepEqual(L.header, ['sample_id', 'pid', 'timepoint', 'antigen', 'source_file', 'panel', 'population', 'gate', 'statistic', 'column', 'value', 'value_minus_bl']);
+  assert.deepEqual(L.header, ['sample_id', 'pid', 'timepoint', 'antigen', 'batch', 'source_file', 'panel', 'population', 'gate', 'statistic', 'column', 'value', 'value_minus_ns']);
   assert.equal(L.rows.length, 96 * (8 + 48));
   const cy = sheet('Cytokines');
-  const col = cy.header[5];
-  const wideVal = cy.rows[3][5];
-  const longRow = L.rows.find(r => r[0] === cy.rows[3][0] && r[9] === col && r[5] === 'Cytokines');
-  assert.equal(longRow[10], wideVal);
-  assert.equal(longRow[6], col.split(' | ')[0]);
-  assert.equal(longRow[7], 'GMCSF+');
-  assert.equal(longRow[8], 'Freq. of Parent (%)');
-  // baseline rows: NA in the subtracted column when dropped, 0 (floored) when kept
-  const blRow = L.rows.find(r => r[0] === '71002 - BL_NS' && r[9] === col);
-  assert.equal(blRow[11], 'NA');
+  const col = cy.header[6];
+  const wideVal = cy.rows[3][6];
+  const longRow = L.rows.find(r => r[0] === cy.rows[3][0] && r[10] === col && r[6] === 'Cytokines');
+  assert.equal(longRow[11], wideVal);
+  assert.equal(longRow[7], col.split(' | ')[0]);
+  assert.equal(longRow[8], 'GMCSF+');
+  assert.equal(longRow[9], 'Freq. of Parent (%)');
+  // NS rows: NA in the subtracted column when dropped, 0 (floored) when kept
+  const nsRow = L.rows.find(r => r[0] === '71002 - FU1_NS' && r[10] === col);
+  assert.equal(nsRow[12], 'NA');
   const keep = C.run(tables, { ...config, baseline: { ...config.baseline, dropBaselineRows: false } });
   const L2 = keep.sheets.find(s => s.name === 'Long');
-  assert.equal(L2.rows.find(r => r[0] === '71002 - BL_NS' && r[9] === col)[11], 0.0001);
-  assert.equal(keep.sheets.find(s => s.name === 'Cytokines_minusBL').rows.length, 96);
+  assert.equal(L2.rows.find(r => r[0] === '71002 - FU1_NS' && r[10] === col)[12], 0.0001);
+  assert.equal(keep.sheets.find(s => s.name === 'Cytokines_minusNS').rows.length, 96);
   const all = C.run(tables, { ...config, long: { allColumns: true } });
   assert.equal(all.sheets.find(s => s.name === 'Long').rows.length, 96 * 280);
 });

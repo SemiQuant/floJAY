@@ -83,7 +83,7 @@
 <body>
 <div class="sq-header">
   <img src="<!--INLINE:logo-->" alt="SemiQuant">
-  <div><div class="sq-title">floJAY</div><div class="sq-sub">Combine FlowJo table exports, rebuild panels, subtract baseline, export tidy data. Runs in your browser; nothing is uploaded.</div></div>
+  <div><div class="sq-title">floJAY</div><div class="sq-sub">Combine FlowJo table exports, rebuild panels, subtract background, export tidy data. Runs in your browser; nothing is uploaded.</div></div>
   <div class="sq-right"><span class="sq-sub" id="hdrStatus"></span></div>
 </div>
 <main>
@@ -128,12 +128,12 @@
   <h2><span class="step">4</span>Processing</h2>
   <div class="grid2">
     <div>
-      <div class="row"><label class="inline"><input type="checkbox" id="blEnabled"> <strong>Subtract baseline</strong></label></div>
+      <div class="row"><label class="inline"><input type="checkbox" id="blEnabled"> <strong>Subtract background</strong></label></div>
       <div class="row">
         <label class="inline">Field <select id="blField"></select></label>
-        <label class="inline">Baseline value <input type="text" id="blValue" list="blValues" style="min-width:120px"><datalist id="blValues"></datalist></label>
+        <label class="inline">Background value <input type="text" id="blValue" list="blValues" style="min-width:120px"><datalist id="blValues"></datalist></label>
       </div>
-      <div class="row"><label class="inline"><input type="checkbox" id="blDrop"> Drop the baseline rows from the subtracted sheets</label></div>
+      <div class="row"><label class="inline"><input type="checkbox" id="blDrop"> Drop the background rows (e.g. NS) from the subtracted sheets</label></div>
       <p class="hint" id="blExplain"></p>
     </div>
     <div>
@@ -200,6 +200,7 @@
   function mergeConfig(def, obj) {
     const c = JSON.parse(JSON.stringify(def));
     if (!obj || typeof obj !== 'object') return c;
+    obj = C.migrateConfig(obj);
     for (const k of ['template', 'useRegex', 'regex', 'statFilter', 'naText']) if (k in obj) c[k] = obj[k];
     if (Array.isArray(obj.sets)) c.sets = obj.sets.filter(s => s && typeof s.name === 'string').map(s => ({ name: s.name, lines: String(s.lines || '') }));
     if (obj.baseline) c.baseline = { ...c.baseline, ...obj.baseline };
@@ -419,7 +420,7 @@
     $('blValues').innerHTML = Array.from(vals).sort().map(v => '<option value="' + esc(v) + '">').join('');
     const others = fields.filter(f => f !== cfg.baseline.field);
     $('blExplain').textContent = fields.length
-      ? 'For every row, the row with the same ' + (others.join(' + ') || '(no other fields)') + ' and ' + cfg.baseline.field + ' = "' + cfg.baseline.value + '" is subtracted. Rows with no matching baseline get NA.' +
+      ? 'For every row, the row with the same ' + (others.join(' + ') || '(no other fields)') + ' and ' + cfg.baseline.field + ' = "' + cfg.baseline.value + '" is subtracted. Rows with no matching background get NA.' +
         (rows && vals.size && !vals.has(cfg.baseline.value) ? ' Warning: no row has ' + cfg.baseline.field + ' = "' + cfg.baseline.value + '". Values seen: ' + Array.from(vals).sort().join(', ') : '')
       : '';
   }
